@@ -1,8 +1,4 @@
-# RESEARCH GROUP MANAGEMENT API - MANDATORY TASKS ONLY
 
-Dự án đã được tinh chỉnh chỉ giữ lại đúng và đủ các **Task Bắt Buộc** (65 điểm) theo file bảng điểm `Project_FastAPI_research.xlsx`. All optional/bonus features (Comments, Attachments, Refresh Token, Seed script) đã được loại bỏ hoàn toàn.
-
-## Cấu trúc thư mục:
 ```
 research_management/
 ├── .env
@@ -42,7 +38,3 @@ research_management/
         └── task_router.py
 ```
 
-## Khởi chạy:
-```bash
-uvicorn app.main:app --reload
-```
