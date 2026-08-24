@@ -12,7 +12,7 @@ def check_password(raw_password: str, hash_password: str) -> bool:
 def create_access_token(user_id: int, username: str, role_user: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sup": user_id,
+        "sub": str(user_id), 
         "username": username,
         "role_user": role_user,
         "iat": now,

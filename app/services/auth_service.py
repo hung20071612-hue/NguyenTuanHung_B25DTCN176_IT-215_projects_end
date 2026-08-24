@@ -3,7 +3,7 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
-from app.models import UserModel
+from app.models.user import UserModel
 from app.schemas.auth_schemas import RegisterRequest, LoginRequest
 from app.core import security
 from app.core.config import settings
@@ -33,14 +33,14 @@ def handle_register(req: RegisterRequest, db: Session):
 def handle_login(req: LoginRequest, db: Session):
     user = db.query(UserModel).filter(UserModel.email == req.email).first()
     if not user:
-        return NOT_FOUND_USER
+        return NOT_FOUND_USER, None
 
     if not user.is_active:
-        return ACCOUNT_LOCKED
+        return ACCOUNT_LOCKED, None
 
     is_valid_password = security.check_password(req.password, user.password_hash)
     if not is_valid_password:
-        return INCORRECT_PASSWORD
+        return INCORRECT_PASSWORD, None
 
     access_token = security.create_access_token(
         user_id=user.id,
@@ -48,11 +48,7 @@ def handle_login(req: LoginRequest, db: Session):
         role_user=user.role
     )
 
-    return {
-        "message": "Đăng nhập thành công",
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    return None, access_token
 
 security_token = HTTPBearer()
 
@@ -61,7 +57,7 @@ def handle_get_user(cre: HTTPAuthorizationCredentials = Depends(security_token))
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return {
-            "user_id": payload.get("sup"),
+            "user_id": payload.get("sub"),
             "username": payload.get("username"),
             "role_name": payload.get("role_user")
         }
@@ -75,16 +71,3 @@ def handle_get_user(cre: HTTPAuthorizationCredentials = Depends(security_token))
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token không hợp lệ"
         )
-
-class RoleCheck:
-    def __init__(self, role_allow: list):
-        self.role_allow = [r.lower() for r in role_allow]
-
-    def __call__(self, user_data: dict = Depends(handle_get_user)):
-        user_role = str(user_data.get("role_name", "")).lower()
-        if user_role not in self.role_allow:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Bạn không có quyền thực hiện hành động này. Yêu cầu quyền: {self.role_allow}"
-            )
-        return user_data
