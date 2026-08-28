@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.db.database import get_db
@@ -6,15 +6,17 @@ from app.schemas.project_schemas import (
     ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse,
     MemberAddRequest, MemberResponse
 )
-from app.schemas.task_schemas import TaskCreateRequest, TaskResponse
-from app.services import project_service, task_service, auth_service
+from app.services import project_service, auth_service
 
 project_router = APIRouter(prefix="/research-projects", tags=["Research Projects"])
 
 def get_user_id(user_info: dict) -> int:
     if isinstance(user_info, dict):
-        return user_info.get("user_id")
-    return getattr(user_info, "id", None)
+        raw_id = user_info.get("user_id")
+        return int(raw_id) if raw_id is not None else None
+    
+    val = getattr(user_info, "id", None)
+    return int(val) if val is not None else None
 
 @project_router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 def create_project(req: ProjectCreateRequest, user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
@@ -22,7 +24,7 @@ def create_project(req: ProjectCreateRequest, user_info: dict = Depends(auth_ser
     return project_service.handle_create_project(req=req, user_id=user_id, db=db)
 
 @project_router.get("", response_model=List[ProjectResponse], status_code=status.HTTP_200_OK)
-def get_my_projects(search: Optional[str] = None, user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
+def get_my_projects(search: Optional[str] = Query(None, description="Tìm kiếm theo tên"), user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
     user_id = get_user_id(user_info)
     return project_service.handle_get_user_projects(user_id=user_id, db=db, search=search)
 
@@ -92,42 +94,3 @@ def remove_member(project_id: int, user_id: int, user_info: dict = Depends(auth_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thành viên không thuộc đề tài")
     return {"message": "Xóa thành viên khỏi đề tài thành công"}
 
-@project_router.post("/{project_id}/research-tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(project_id: int, req: TaskCreateRequest, user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
-    user_id = get_user_id(user_info)
-    data = task_service.handle_create_task(project_id=project_id, req=req, user_id=user_id, db=db)
-    if data == task_service.FORBIDDEN_TASK:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ thành viên đề tài mới được tạo nhiệm vụ")
-    if data == task_service.INVALID_ASSIGNEE:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assignee phải là thành viên trong đề tài")
-    return data
-
-@project_router.get("/{project_id}/research-tasks", response_model=List[TaskResponse], status_code=status.HTTP_200_OK)
-def get_tasks(
-    project_id: int, 
-    status_filter: Optional[str] = None, 
-    priority: Optional[str] = None, 
-    search: Optional[str] = None,
-    limit: int = 10,
-    offset: int = 0,
-    sort_by: str = "created_at",
-    sort_order: str = "desc",
-    user_info: dict = Depends(auth_service.handle_get_user), 
-    db: Session = Depends(get_db)
-):
-    user_id = get_user_id(user_info)
-    data = task_service.handle_get_tasks(
-        project_id=project_id, 
-        user_id=user_id, 
-        db=db, 
-        status=status_filter, 
-        priority=priority, 
-        search=search,
-        limit=limit,
-        offset=offset,
-        sort_by=sort_by,
-        sort_order=sort_order
-    )
-    if data == task_service.FORBIDDEN_TASK:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không có quyền xem nhiệm vụ")
-    return data

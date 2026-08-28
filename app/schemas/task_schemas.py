@@ -6,17 +6,14 @@ from app.schemas.user_schemas import UserResponse
 class TaskCreateRequest(BaseModel):
     title: str
     description: Optional[str] = None
-    assignee_id: Optional[int] = None
     priority: str = "MEDIUM"
     due_date: Optional[datetime] = None
 
+class TaskAssignRequest(BaseModel):
+    assignee_id: int
+
 class TaskUpdateRequest(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    assignee_id: Optional[int] = None
     status: Optional[str] = None
-    priority: Optional[str] = None
-    due_date: Optional[datetime] = None
 
 class TaskResponse(BaseModel):
     id: int

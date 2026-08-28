@@ -16,9 +16,10 @@ def get_me(current_user: UserModel = Depends(get_current_user)):
 
 @router.get("", response_model=List[UserResponse])
 def get_all_users(
-    search: Optional[str] = Query(None, description="Tìm kiếm theo tên hoặc email"),
+    search_name: Optional[str] = Query(None, description="Tìm kiếm theo tên"),
+    search_email: Optional[str] = Query(None, description="Tìm kiếm theo email"),
     is_active: Optional[bool] = Query(None, description="Lọc theo trạng thái hoạt động"),
     current_user: UserModel = Depends(RoleCheck(["ADMIN", "admin"])),
     db: Session = Depends(get_db)
 ):
-    return user_service.get_users_list(db, search=search, is_active=is_active)
+    return user_service.get_users_list(db, search_name=search_name,search_email=search_email, is_active=is_active)

@@ -1,7 +1,12 @@
+import enum
 from app.db.database import Base 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
+from datetime import datetime,timezone
+
+class MemberRole(str, enum.Enum):
+    OWNER = "OWNER"
+    MEMBER = "MEMBER"
 
 class ResearchProjectModel(Base):
     __tablename__ = "research_projects"
@@ -21,7 +26,7 @@ class ResearchMemberModel(Base):
 
     project_id = Column(Integer, ForeignKey("research_projects.id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    role = Column(String(50), nullable=False)
+    role = Column(Enum(MemberRole),default=MemberRole.MEMBER , nullable=False)
     joined_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
 
     project = relationship("ResearchProjectModel", back_populates="members")
