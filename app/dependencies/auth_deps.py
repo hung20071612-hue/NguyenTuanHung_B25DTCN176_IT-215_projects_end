@@ -46,13 +46,20 @@ def get_current_user(
     return user
 
 class RoleCheck:
+
     def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = [r.upper() for r in allowed_roles]
 
     def __call__(self, current_user: UserModel = Depends(get_current_user)):
-        if str(current_user.role).upper() not in self.allowed_roles:
+        user_role = (
+            current_user.role.value
+            if hasattr(current_user.role, "value")
+            else current_user.role
+        )
+
+        if str(user_role).upper() not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Bạn không có quyền thực hiện thao tác này"
+                detail="Bạn không có quyền thực hiện thao tác này",
             )
         return current_user

@@ -19,7 +19,7 @@ def get_all_users(
     search_name: Optional[str] = Query(None, description="Tìm kiếm theo tên"),
     search_email: Optional[str] = Query(None, description="Tìm kiếm theo email"),
     is_active: Optional[bool] = Query(None, description="Lọc theo trạng thái hoạt động"),
-    current_user: UserModel = Depends(RoleCheck(["ADMIN", "admin"])),
+    current_user: UserModel = Depends(RoleCheck(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
     return user_service.get_users_list(db, search_name=search_name,search_email=search_email, is_active=is_active)

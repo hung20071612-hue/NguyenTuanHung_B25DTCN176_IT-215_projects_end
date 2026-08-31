@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models import ResearchTaskModel, ResearchMemberModel, ResearchProjectModel
-from app.schemas.task_schemas import TaskCreateRequest, TaskAssignRequest, TaskUpdateRequest
+from app.schemas.task_schemas import TaskCreateRequest, TaskAssignRequest, TaskUpdateStatus, TaskUpdateRequest
 
 NOT_FOUND_TASK = "Không tìm thấy nhiệm vụ nghiên cứu"
 FORBIDDEN_TASK = "Bạn không có quyền thao tác trên nhiệm vụ này"
@@ -83,7 +83,7 @@ def handle_get_task_detail(task_id: int, user_id: int, db: Session):
 
     return task
 
-def handle_update_task(task_id: int, req: TaskUpdateRequest, user_id: int, db: Session):
+def handle_update_task_status(task_id: int, req: TaskUpdateStatus, user_id: int, db: Session):
     task = db.query(ResearchTaskModel).filter(ResearchTaskModel.id == task_id).first()
     if not task:
         return NOT_FOUND_TASK
@@ -101,14 +101,31 @@ def handle_update_task(task_id: int, req: TaskUpdateRequest, user_id: int, db: S
         if task.assignee_id is None or task.assignee_id != user_id:
             return FORBIDDEN_TASK
 
+    for key, value in update_data.items():
+        setattr(task, key, value)
 
-    if "assignee_id" in update_data and update_data["assignee_id"] is not None:
-        is_assignee_member = db.query(ResearchMemberModel).filter(
-            ResearchMemberModel.project_id == task.project_id,
-            ResearchMemberModel.user_id == update_data["assignee_id"]
-        ).first()
-        if not is_assignee_member:
-            return INVALID_ASSIGNEE
+    db.commit()
+    db.refresh(task)
+    return task
+
+def handle_update_task(task_id: int, req: TaskUpdateRequest, user_id: int, db: Session):
+    task = db.query(ResearchTaskModel).filter(ResearchTaskModel.id == task_id).first()
+    if not task:
+        return NOT_FOUND_TASK
+
+    member = db.query(ResearchMemberModel).filter(
+        ResearchMemberModel.project_id == task.project_id,
+        ResearchMemberModel.user_id == user_id
+    ).first()
+    if not member:
+        return FORBIDDEN_TASK
+ 
+    project = db.query(ResearchProjectModel).filter(ResearchProjectModel.id == task.project_id).first()
+    is_owner = (project.owner_id == user_id)
+    if not is_owner:
+            return FORBIDDEN_TASK
+
+    update_data = req.model_dump(exclude_unset=True)
 
     for key, value in update_data.items():
         setattr(task, key, value)
@@ -131,10 +148,9 @@ def handle_delete_task(task_id: int, user_id: int, db: Session):
 
     project = db.query(ResearchProjectModel).filter(ResearchProjectModel.id == task.project_id).first()
 
-    is_assignee = (task.assignee_id == user_id)
     is_owner = (project.owner_id == user_id)
 
-    if not (is_assignee or is_owner):
+    if not is_owner:
         return FORBIDDEN_TASK
 
     db.delete(task)

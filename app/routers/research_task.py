@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from typing import List, Optional
-from app.schemas.task_schemas import TaskResponse, TaskCreateRequest, TaskAssignRequest, TaskUpdateRequest
+from app.schemas.task_schemas import TaskResponse, TaskCreateRequest, TaskAssignRequest, TaskUpdateStatus, TaskUpdateRequest
 from app.services import task_service, auth_service
 
 task_router = APIRouter(prefix="/research-tasks", tags=["Research Tasks"])
@@ -22,7 +22,7 @@ def create_task(project_id: int, req: TaskCreateRequest, user_info: dict = Depen
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assignee phải là thành viên trong đề tài")
     return data
 
-@task_router.patch("/research-tasks/{task_id}/assign", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+@task_router.patch("/{task_id}/assign", response_model=TaskResponse, status_code=status.HTTP_200_OK)
 def assign_task(task_id: int, req: TaskAssignRequest, user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
     user_id = get_user_id(user_info)
     data = task_service.handle_assign_task(task_id=task_id, req=req, user_id=user_id, db=db)
@@ -74,6 +74,28 @@ def get_task_detail(task_id: int, user_info: dict = Depends(auth_service.handle_
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Không có quyền xem nhiệm vụ này")
     return data
 
+@task_router.patch("/{task_id}/status", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+def update_task_status(
+    task_id: int, 
+    req: TaskUpdateStatus, 
+    user_info: dict = Depends(auth_service.handle_get_user), 
+    db: Session = Depends(get_db)
+):
+    user_id = get_user_id(user_info)
+    data = task_service.handle_update_task_status(task_id=task_id, req=req, user_id=user_id, db=db)
+    
+    if data == task_service.NOT_FOUND_TASK:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nhiệm vụ không tồn tại")
+        
+    if data == task_service.FORBIDDEN_TASK:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Bạn không có quyền chỉnh sửa nhiệm vụ này (Chỉ người được gán việc mới được thay đổi trạng thái)"
+        )
+        
+        
+    return data
+
 @task_router.patch("/{task_id}", response_model=TaskResponse, status_code=status.HTTP_200_OK)
 def update_task(
     task_id: int, 
@@ -90,11 +112,9 @@ def update_task(
     if data == task_service.FORBIDDEN_TASK:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Bạn không có quyền chỉnh sửa nhiệm vụ này (Chỉ người được gán việc mới được thay đổi trạng thái)"
+            detail="Bạn không có quyền"
         )
         
-    if data == task_service.INVALID_ASSIGNEE:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assignee phải là thành viên trong đề tài")
         
     return data
 

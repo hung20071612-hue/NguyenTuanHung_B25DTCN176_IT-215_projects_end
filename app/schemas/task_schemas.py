@@ -12,8 +12,15 @@ class TaskCreateRequest(BaseModel):
 class TaskAssignRequest(BaseModel):
     assignee_id: int
 
-class TaskUpdateRequest(BaseModel):
+class TaskUpdateStatus(BaseModel):
     status: Optional[str] = None
+
+class TaskUpdateRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    priority: str
+    due_date: Optional[datetime] = None
+
 
 class TaskResponse(BaseModel):
     id: int
