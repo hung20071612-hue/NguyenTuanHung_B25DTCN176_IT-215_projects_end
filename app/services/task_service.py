@@ -27,16 +27,20 @@ def handle_create_task(project_id: int, req: TaskCreateRequest, user_id: int, db
     db.refresh(new_task)
     return new_task
 
-def handle_assign_task(task_id: int, req: TaskAssignRequest, db: Session):
+def handle_assign_task(task_id: int, req: TaskAssignRequest, user_id: int, db: Session): 
     task = db.query(ResearchTaskModel).filter(ResearchTaskModel.id == task_id).first()
     if not task:
         return NOT_FOUND_TASK 
+
+    project = db.query(ResearchProjectModel).filter(ResearchProjectModel.id == task.project_id).first()
+    is_owner = (project.owner_id == user_id)
+    if not is_owner:
+        return FORBIDDEN_TASK
 
     is_member = db.query(ResearchMemberModel).filter(
         ResearchMemberModel.project_id == task.project_id,
         ResearchMemberModel.user_id == req.assignee_id
     ).first()
-
     if not is_member:
         return INVALID_ASSIGNEE
 

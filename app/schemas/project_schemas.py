@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from app.schemas.user_schemas import UserResponse
+from app.models.research_project import MemberRole
 
 class ProjectCreateRequest(BaseModel):
     name: str
@@ -13,7 +14,7 @@ class ProjectUpdateRequest(BaseModel):
 
 class MemberAddRequest(BaseModel):
     user_id: int
-    role: str = "MEMBER"
+    role: MemberRole = MemberRole.MEMBER
 
 class MemberResponse(BaseModel):
     project_id: int

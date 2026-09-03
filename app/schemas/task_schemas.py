@@ -2,11 +2,12 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from app.schemas.user_schemas import UserResponse
+from app.models.research_task import TaskStatus, TaskPriority
 
 class TaskCreateRequest(BaseModel):
     title: str
     description: Optional[str] = None
-    priority: str = "MEDIUM"
+    priority: TaskPriority = TaskPriority.MEDIUM
     due_date: Optional[datetime] = None
 
 class TaskAssignRequest(BaseModel):
@@ -18,7 +19,7 @@ class TaskUpdateStatus(BaseModel):
 class TaskUpdateRequest(BaseModel):
     title: str
     description: Optional[str] = None
-    priority: str
+    priority: TaskPriority
     due_date: Optional[datetime] = None
 
 

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models import ResearchProjectModel, ResearchMemberModel, UserModel
+from app.models import ResearchProjectModel, ResearchMemberModel, UserModel, ResearchTaskModel
 from app.schemas.project_schemas import ProjectCreateRequest, ProjectUpdateRequest, MemberAddRequest
 
 NOT_FOUND_PROJECT = "Không tìm thấy đề tài nghiên cứu"
@@ -134,6 +134,11 @@ def handle_remove_member(project_id: int, target_user_id: int, user_id: int, db:
     ).first()
     if not member:
         return NOT_FOUND_USER
+
+    db.query(ResearchTaskModel).filter(
+        ResearchTaskModel.project_id == project_id,
+        ResearchTaskModel.assignee_id == target_user_id
+    ).update({"assignee_id": None})
 
     db.delete(member)
     db.commit()

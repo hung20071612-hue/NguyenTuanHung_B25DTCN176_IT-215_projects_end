@@ -12,7 +12,7 @@ def get_user_id(user_info: dict) -> int:
         return user_info.get("user_id")
     return getattr(user_info, "id", None)
 
-@task_router.post("/{project_id}/research-tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@task_router.post("/research-projects/{project_id}/research-tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(project_id: int, req: TaskCreateRequest, user_info: dict = Depends(auth_service.handle_get_user), db: Session = Depends(get_db)):
     user_id = get_user_id(user_info)
     data = task_service.handle_create_task(project_id=project_id, req=req, user_id=user_id, db=db)
